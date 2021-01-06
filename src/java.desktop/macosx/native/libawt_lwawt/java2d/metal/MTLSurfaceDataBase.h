@@ -32,8 +32,6 @@
 
 #include "SurfaceData.h"
 #include "Trace.h"
-#include "MTLFuncs.h"
-
 
 /**
  * The MTLPixelFormat structure contains all the information OpenGL needs to

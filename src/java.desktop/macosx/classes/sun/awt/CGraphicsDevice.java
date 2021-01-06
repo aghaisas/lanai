@@ -56,7 +56,8 @@ public final class CGraphicsDevice extends GraphicsDevice
     private volatile Rectangle bounds;
     private volatile int scale;
 
-    private final GraphicsConfiguration config;
+    private GraphicsConfiguration config;
+    private static boolean metalPipelineEnabled = false;
 
     private static AWTPermission fullScreenExclusivePermission;
 
@@ -65,9 +66,31 @@ public final class CGraphicsDevice extends GraphicsDevice
 
     public CGraphicsDevice(final int displayID) {
         this.displayID = displayID;
-        config = MacOSFlags.isMetalEnabled() ?
-                MTLGraphicsConfig.getConfig(this, displayID, 0) :
-                CGLGraphicsConfig.getConfig(this);
+
+        // Check whether -Dsun.java2d.metal=true has been specified
+        if (MacOSFlags.isMetalEnabled()) {
+
+            // Check whether Metal framework is available on the system
+            if (MTLGraphicsConfig.isMetalAvailable()) {
+
+                // Try to get MTLGraphicsConfig
+                this.config = MTLGraphicsConfig.getConfig(this, displayID, 0);
+
+                // If MTLGraphicsConfig creation succeeds
+                if (this.config != null) {
+                    metalPipelineEnabled = true;
+                } else {
+                    System.out.println("Metal rendering pipeline initialization failed. Using OpenGL rendering pipeline.");
+                }
+            } else {
+                System.out.println("Metal framework is not available. Using OpenGL rendering pipeline.");
+            }
+        }
+
+        if (!metalPipelineEnabled) {
+            this.config = CGLGraphicsConfig.getConfig(this);
+        }
+
         // initializes default device state, might be redundant step since we
         // call "displayChanged()" later anyway, but we do not want to leave the
         // device in an inconsistent state after construction
@@ -267,6 +290,10 @@ public final class CGraphicsDevice extends GraphicsDevice
     @Override
     public DisplayMode[] getDisplayModes() {
         return nativeGetDisplayModes(displayID);
+    }
+
+    public static boolean useMetalPipeline() {
+        return metalPipelineEnabled;
     }
 
     private void initScaleFactor() {
