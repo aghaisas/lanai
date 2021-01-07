@@ -501,7 +501,7 @@ public final class LWCToolkit extends LWToolkit {
 
     @Override
     public void sync() {
-        // flush the OGL pipeline (this is a no-op if OGL is not enabled)
+        // flush the rendering pipeline
         if (CGraphicsDevice.useMetalPipeline()) {
             MTLRenderQueue.sync();
         } else {

@@ -67,23 +67,18 @@ public final class CGraphicsDevice extends GraphicsDevice
     public CGraphicsDevice(final int displayID) {
         this.displayID = displayID;
 
-        // Check whether -Dsun.java2d.metal=true has been specified
         if (MacOSFlags.isMetalEnabled()) {
 
-            // Check whether Metal framework is available on the system
-            if (MTLGraphicsConfig.isMetalAvailable()) {
+            // Try to get MTLGraphicsConfig
+            this.config = MTLGraphicsConfig.getConfig(this, displayID, 0);
 
-                // Try to get MTLGraphicsConfig
-                this.config = MTLGraphicsConfig.getConfig(this, displayID, 0);
-
-                // If MTLGraphicsConfig creation succeeds
-                if (this.config != null) {
-                    metalPipelineEnabled = true;
-                } else {
+            // If MTLGraphicsConfig creation succeeds
+            if (this.config != null) {
+                metalPipelineEnabled = true;
+            } else {
+                if (MacOSFlags.isMetalVerbose()) {
                     System.out.println("Metal rendering pipeline initialization failed. Using OpenGL rendering pipeline.");
                 }
-            } else {
-                System.out.println("Metal framework is not available. Using OpenGL rendering pipeline.");
             }
         }
 

@@ -26,6 +26,8 @@
 package sun.java2d.macos;
 
 import java.security.PrivilegedAction;
+import sun.java2d.metal.MTLGraphicsConfig;
+
 
 public class MacOSFlags {
 
@@ -36,6 +38,7 @@ public class MacOSFlags {
      */
 
     private static boolean metalEnabled;
+    private static boolean metalVerbose;
 
     static {
         initJavaFlags();
@@ -66,6 +69,18 @@ public class MacOSFlags {
         return returnVal;
     }
 
+    private static boolean isBooleanPropTrueVerbose(String p) {
+        String propString = System.getProperty(p);
+        if (propString != null) {
+            if (propString.equals("True") ||
+                propString.equals("T"))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     private static boolean getPropertySet(String p) {
         String propString = System.getProperty(p);
@@ -76,11 +91,27 @@ public class MacOSFlags {
         java.security.AccessController.doPrivileged(
                 (PrivilegedAction<Object>) () -> {
                     metalEnabled = getBooleanProp("sun.java2d.metal", false);
+                    if (metalEnabled) {
+                        metalVerbose = isBooleanPropTrueVerbose("sun.java2d.metal");
+
+                        // Check whether Metal framework is available on the system
+                        if (!MTLGraphicsConfig.isMetalAvailable()) {
+                            metalEnabled = false;
+
+                            if (metalVerbose) {
+                                System.out.println("Could not enable Metal pipeline (Metal framework not available)");
+                            }
+                        }
+                    }
                     return null;
                 });
     }
 
     public static boolean isMetalEnabled() {
         return metalEnabled;
+    }
+
+    public static boolean isMetalVerbose() {
+        return metalVerbose;
     }
 }
