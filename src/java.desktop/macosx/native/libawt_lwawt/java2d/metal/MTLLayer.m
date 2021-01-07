@@ -28,6 +28,7 @@
 #import "ThreadUtilities.h"
 #import "LWCToolkit.h"
 #import "MTLSurfaceData.h"
+#import "JNIUtilities.h"
 
 @implementation MTLLayer
 
@@ -116,13 +117,13 @@
         }];
 
         [commandBuf commit];
+        [self stopDisplayLink];
     }
 }
 
 - (void) dealloc {
     self.javaLayer = nil;
-    if (CVDisplayLinkIsRunning(self.displayLink))
-        CVDisplayLinkStop(self.displayLink);
+    [self stopDisplayLink];
     CVDisplayLinkRelease(self.displayLink);
     self.displayLink = nil;
     [super dealloc];
@@ -131,15 +132,16 @@
 - (void) blitCallback {
 
     JNIEnv *env = [ThreadUtilities getJNIEnv];
-    static JNF_CLASS_CACHE(jc_JavaLayer, "sun/java2d/metal/MTLLayer");
-    static JNF_MEMBER_CACHE(jm_drawInMTLContext, jc_JavaLayer, "drawInMTLContext", "()V");
+    DECLARE_CLASS(jc_JavaLayer, "sun/java2d/metal/MTLLayer");
+    DECLARE_METHOD(jm_drawInMTLContext, jc_JavaLayer, "drawInMTLContext", "()V");
 
     jobject javaLayerLocalRef = [self.javaLayer jObjectWithEnv:env];
     if ((*env)->IsSameObject(env, javaLayerLocalRef, NULL)) {
         return;
     }
 
-    JNFCallVoidMethod(env, javaLayerLocalRef, jm_drawInMTLContext);
+    (*env)->CallVoidMethod(env, javaLayerLocalRef, jm_drawInMTLContext);
+    CHECK_EXCEPTION();
     (*env)->DeleteLocalRef(env, javaLayerLocalRef);
 }
 
@@ -153,6 +155,16 @@
 - (void) redraw {
     AWT_ASSERT_APPKIT_THREAD;
     [self setNeedsDisplay];
+}
+
+- (void) startDisplayLink {
+    if (!CVDisplayLinkIsRunning(self.displayLink))
+        CVDisplayLinkStart(self.displayLink);
+}
+
+- (void) stopDisplayLink {
+    if (CVDisplayLinkIsRunning(self.displayLink))
+        CVDisplayLinkStop(self.displayLink);
 }
 
 CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
@@ -210,12 +222,10 @@ Java_sun_java2d_metal_MTLLayer_validate
         layer.drawableSize =
             CGSizeMake(layer.buffer.width,
                        layer.buffer.height);
-        if (!CVDisplayLinkIsRunning(layer.displayLink))
-            CVDisplayLinkStart(layer.displayLink);
+        [layer startDisplayLink];
     } else {
         layer.ctx = NULL;
-        if (CVDisplayLinkIsRunning(layer.displayLink))
-            CVDisplayLinkStop(layer.displayLink);
+        [layer stopDisplayLink];
     }
 }
 

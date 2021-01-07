@@ -77,7 +77,7 @@ MTLGC_DestroyMTLGraphicsConfig(jlong pConfigInfo)
  */
 JNIEXPORT jboolean JNICALL
 Java_sun_java2d_metal_MTLGraphicsConfig_isMetalFrameworkAvailable
-    (JNIEnv *env, jclass cglgc)
+    (JNIEnv *env, jclass mtlgc)
 {
     FILE *f = popen("/usr/sbin/system_profiler SPDisplaysDataType", "r");
     bool metalSupported = JNI_FALSE;
@@ -112,7 +112,7 @@ Java_sun_java2d_metal_MTLGraphicsConfig_isMetalFrameworkAvailable
 
 JNIEXPORT jboolean JNICALL
 Java_sun_java2d_metal_MTLGraphicsConfig_tryLoadMetalLibrary
-    (JNIEnv *env, jclass cglgc, jint displayID, jstring shadersLibName)
+    (JNIEnv *env, jclass mtlgc, jint displayID, jstring shadersLibName)
 {
   jboolean ret = JNI_FALSE;
   JNF_COCOA_ENTER(env);
@@ -132,18 +132,18 @@ Java_sun_java2d_metal_MTLGraphicsConfig_tryLoadMetalLibrary
 
 
 /**
- * Determines whether the CGL pipeline can be used for a given GraphicsConfig
+ * Determines whether the MTL pipeline can be used for a given GraphicsConfig
  * provided its screen number and visual ID.  If the minimum requirements are
- * met, the native CGLGraphicsConfigInfo structure is initialized for this
+ * met, the native MTLGraphicsConfigInfo structure is initialized for this
  * GraphicsConfig with the necessary information (pixel format, etc.)
  * and a pointer to this structure is returned as a jlong.  If
- * initialization fails at any point, zero is returned, indicating that CGL
+ * initialization fails at any point, zero is returned, indicating that MTL
  * cannot be used for this GraphicsConfig (we should fallback on an existing
  * 2D pipeline).
  */
 JNIEXPORT jlong JNICALL
 Java_sun_java2d_metal_MTLGraphicsConfig_getMTLConfigInfo
-    (JNIEnv *env, jclass cglgc, jint displayID, jstring mtlShadersLib)
+    (JNIEnv *env, jclass mtlgc, jint displayID, jstring mtlShadersLib)
 {
   jlong ret = 0L;
   JNF_COCOA_ENTER(env);
