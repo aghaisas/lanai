@@ -27,6 +27,7 @@ package sun.java2d.macos;
 
 import java.security.PrivilegedAction;
 import sun.java2d.metal.MTLGraphicsConfig;
+import sun.java2d.opengl.CGLGraphicsConfig;
 
 
 public class MacOSFlags {
@@ -37,8 +38,12 @@ public class MacOSFlags {
      *      metalEnabled: usage: "-Dsun.java2d.metal=[true|false]"
      */
 
+    private static boolean oglEnabled;
+    private static boolean oglVerbose;
     private static boolean metalEnabled;
     private static boolean metalVerbose;
+
+    private enum PropertyState {ENABLED, DISABLED, UNSPECIFIED};
 
     static {
         initJavaFlags();
@@ -47,9 +52,9 @@ public class MacOSFlags {
 
     private static native boolean initNativeFlags();
 
-    private static boolean getBooleanProp(String p, boolean defaultVal) {
+    private static PropertyState getBooleanProp(String p, PropertyState defaultVal) {
         String propString = System.getProperty(p);
-        boolean returnVal = defaultVal;
+        PropertyState returnVal = defaultVal;
         if (propString != null) {
             if (propString.equals("true") ||
                 propString.equals("t") ||
@@ -57,13 +62,13 @@ public class MacOSFlags {
                 propString.equals("T") ||
                 propString.equals("")) // having the prop name alone
             {                          // is equivalent to true
-                returnVal = true;
+                returnVal = PropertyState.ENABLED;
             } else if (propString.equals("false") ||
                        propString.equals("f") ||
                        propString.equals("False") ||
                        propString.equals("F"))
             {
-                returnVal = false;
+                returnVal = PropertyState.DISABLED;
             }
         }
         return returnVal;
@@ -90,19 +95,66 @@ public class MacOSFlags {
     private static void initJavaFlags() {
         java.security.AccessController.doPrivileged(
                 (PrivilegedAction<Object>) () -> {
-                    metalEnabled = getBooleanProp("sun.java2d.metal", false);
-                    if (metalEnabled) {
-                        metalVerbose = isBooleanPropTrueVerbose("sun.java2d.metal");
+                    PropertyState oglState = getBooleanProp("sun.java2d.opengl", PropertyState.UNSPECIFIED);
+                    PropertyState metalState = getBooleanProp("sun.java2d.metal", PropertyState.UNSPECIFIED);
 
-                        // Check whether Metal framework is available on the system
-                        if (!MTLGraphicsConfig.isMetalAvailable()) {
+                    if (metalState == PropertyState.UNSPECIFIED) {
+                        if (oglState == PropertyState.DISABLED) {
+                            oglEnabled = false;
+                            metalEnabled = true;
+                        } else if (oglState == PropertyState.ENABLED || oglState == PropertyState.UNSPECIFIED) {
+                            oglEnabled = true;
                             metalEnabled = false;
+                        }
+                    } else if (metalState == PropertyState.ENABLED) {
+                        if (oglState == PropertyState.DISABLED || oglState == PropertyState.UNSPECIFIED) {
+                            oglEnabled = false;
+                            metalEnabled = true;
+                        } else if (oglState == PropertyState.ENABLED) {
+                            oglEnabled = true;
+                            metalEnabled = false;
+                        }
+                    } else if (metalState == PropertyState.DISABLED) {
+                        oglEnabled = true;
+                        metalEnabled = false;
+                    }
 
+                    oglVerbose = isBooleanPropTrueVerbose("sun.java2d.opengl");
+                    metalVerbose = isBooleanPropTrueVerbose("sun.java2d.metal");
+
+                    boolean oglAvailable = CGLGraphicsConfig.isCGLAvailable();
+                    boolean metalAvailable = MTLGraphicsConfig.isMetalAvailable();
+
+                    if (!oglAvailable && !metalAvailable) {
+                        // Should never reach here
+                        throw new RuntimeException("Error - Both, OpenGL and Metal frameworks not available.");
+                    }
+
+                    if (oglEnabled && !metalEnabled) {
+                        // Check whether OGL is available
+                        if (!oglAvailable) {
+                            if (oglVerbose) {
+                                System.out.println("Could not enable OpenGL pipeline (CGL not available)");
+                            }
+                            oglEnabled = false;
+                            metalEnabled = metalAvailable;
+                        }
+                    } else if (metalEnabled && !oglEnabled) {
+                        // Check whether Metal framework is available
+                        if (!metalAvailable) {
                             if (metalVerbose) {
                                 System.out.println("Could not enable Metal pipeline (Metal framework not available)");
                             }
+                            metalEnabled = false;
+                            oglEnabled = oglAvailable;
                         }
                     }
+
+                    // At this point one of the rendering pipeline must be enabled.
+                    if (!metalEnabled && !oglEnabled) {
+                        throw new RuntimeException("Error - unable to initialize any rendering pipeline.");
+                    }
+
                     return null;
                 });
     }
@@ -113,5 +165,13 @@ public class MacOSFlags {
 
     public static boolean isMetalVerbose() {
         return metalVerbose;
+    }
+
+    public static boolean isOGLEnabled() {
+        return oglEnabled;
+    }
+
+    public static boolean isOGLVerbose() {
+        return oglVerbose;
     }
 }

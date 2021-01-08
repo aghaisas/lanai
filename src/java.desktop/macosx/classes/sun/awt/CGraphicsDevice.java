@@ -76,9 +76,10 @@ public final class CGraphicsDevice extends GraphicsDevice
         }
 
         if (!metalPipelineEnabled && !oglPipelineEnabled) {
-            // Should never reach here, but still have to check this
+            // This indicates fallback to other rendering pipeline also failed.
+            // Should never reach here
             System.out.println("Error - unable to initialize any rendering pipeline.");
-            // Throw exception????
+            throw new RuntimeException("Error - unable to initialize any rendering pipeline.");
         }
 
         // initializes default device state, might be redundant step since we
@@ -327,7 +328,9 @@ public final class CGraphicsDevice extends GraphicsDevice
             oglPipelineEnabled = true;
         } else {
             // Try falling back to Metal pipeline
-            System.out.println("OpenGL rendering pipeline initialization failed. Using Metal rendering pipeline.");
+            if (MacOSFlags.isOGLVerbose()) {
+                System.out.println("OpenGL rendering pipeline initialization failed. Using Metal rendering pipeline.");
+            }
 
             this.config = MTLGraphicsConfig.getConfig(this, displayID, 0);
 
