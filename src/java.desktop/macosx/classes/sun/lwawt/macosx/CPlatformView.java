@@ -61,7 +61,7 @@ public class CPlatformView extends CFRetainedResource {
     public void initialize(LWWindowPeer peer, CPlatformResponder responder) {
         initializeBase(peer, responder);
 
-        this.windowLayer = CGraphicsDevice.useMetalPipeline()? createMTLLayer() : createCGLayer();
+        this.windowLayer = CGraphicsDevice.usingMetalPipeline()? createMTLLayer() : createCGLayer();
         setPtr(nativeCreateView(0, 0, 0, 0, getWindowLayerPtr()));
     }
 
@@ -104,7 +104,7 @@ public class CPlatformView extends CFRetainedResource {
     // PAINTING METHODS
     // ----------------------------------------------------------------------
     public SurfaceData replaceSurfaceData() {
-        surfaceData = (CGraphicsDevice.useMetalPipeline()) ?
+        surfaceData = (CGraphicsDevice.usingMetalPipeline()) ?
                     ((MTLLayer)windowLayer).replaceSurfaceData() :
                     ((CGLLayer)windowLayer).replaceSurfaceData()
         ;
@@ -122,7 +122,7 @@ public class CPlatformView extends CFRetainedResource {
     }
 
     public long getWindowLayerPtr() {
-        return CGraphicsDevice.useMetalPipeline() ?
+        return CGraphicsDevice.usingMetalPipeline() ?
                 ((MTLLayer)windowLayer).getPointer() :
                 ((CGLLayer)windowLayer).getPointer();
     }

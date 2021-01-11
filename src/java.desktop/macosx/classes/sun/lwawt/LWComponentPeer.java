@@ -1417,7 +1417,7 @@ public abstract class LWComponentPeer<T extends Component, D extends JComponent>
     }
 
     protected static final void flushOnscreenGraphics(){
-        RenderQueue rq =  CGraphicsDevice.useMetalPipeline() ?
+        RenderQueue rq =  CGraphicsDevice.usingMetalPipeline() ?
                 MTLRenderQueue.getInstance() : OGLRenderQueue.getInstance();
         rq.lock();
         try {

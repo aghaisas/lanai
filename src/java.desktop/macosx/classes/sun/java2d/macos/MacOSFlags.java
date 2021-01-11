@@ -86,33 +86,29 @@ public class MacOSFlags {
         return false;
     }
 
-
-    private static boolean getPropertySet(String p) {
-        String propString = System.getProperty(p);
-        return (propString != null) ? true : false;
-    }
-
     private static void initJavaFlags() {
         java.security.AccessController.doPrivileged(
                 (PrivilegedAction<Object>) () -> {
                     PropertyState oglState = getBooleanProp("sun.java2d.opengl", PropertyState.UNSPECIFIED);
                     PropertyState metalState = getBooleanProp("sun.java2d.metal", PropertyState.UNSPECIFIED);
 
+                    // Note : Currently OpenGL is the default pipeline.
+                    // Switch logic in this if-else ladder if default pipeline is changed to Metal
                     if (metalState == PropertyState.UNSPECIFIED) {
                         if (oglState == PropertyState.DISABLED) {
                             oglEnabled = false;
                             metalEnabled = true;
-                        } else if (oglState == PropertyState.ENABLED || oglState == PropertyState.UNSPECIFIED) {
+                        } else {
                             oglEnabled = true;
                             metalEnabled = false;
                         }
                     } else if (metalState == PropertyState.ENABLED) {
-                        if (oglState == PropertyState.DISABLED || oglState == PropertyState.UNSPECIFIED) {
-                            oglEnabled = false;
-                            metalEnabled = true;
-                        } else if (oglState == PropertyState.ENABLED) {
+                        if (oglState == PropertyState.ENABLED) {
                             oglEnabled = true;
                             metalEnabled = false;
+                        } else {
+                            oglEnabled = false;
+                            metalEnabled = true;
                         }
                     } else if (metalState == PropertyState.DISABLED) {
                         oglEnabled = true;
@@ -122,37 +118,29 @@ public class MacOSFlags {
                     oglVerbose = isBooleanPropTrueVerbose("sun.java2d.opengl");
                     metalVerbose = isBooleanPropTrueVerbose("sun.java2d.metal");
 
-                    boolean oglAvailable = CGLGraphicsConfig.isCGLAvailable();
-                    boolean metalAvailable = MTLGraphicsConfig.isMetalAvailable();
-
-                    if (!oglAvailable && !metalAvailable) {
-                        // Should never reach here
-                        throw new RuntimeException("Error - Both, OpenGL and Metal frameworks not available.");
-                    }
-
                     if (oglEnabled && !metalEnabled) {
                         // Check whether OGL is available
-                        if (!oglAvailable) {
+                        if (!CGLGraphicsConfig.isCGLAvailable()) {
                             if (oglVerbose) {
                                 System.out.println("Could not enable OpenGL pipeline (CGL not available)");
                             }
                             oglEnabled = false;
-                            metalEnabled = metalAvailable;
+                            metalEnabled = MTLGraphicsConfig.isMetalAvailable();
                         }
                     } else if (metalEnabled && !oglEnabled) {
                         // Check whether Metal framework is available
-                        if (!metalAvailable) {
+                        if (!MTLGraphicsConfig.isMetalAvailable()) {
                             if (metalVerbose) {
                                 System.out.println("Could not enable Metal pipeline (Metal framework not available)");
                             }
                             metalEnabled = false;
-                            oglEnabled = oglAvailable;
+                            oglEnabled = CGLGraphicsConfig.isCGLAvailable();
                         }
                     }
 
                     // At this point one of the rendering pipeline must be enabled.
                     if (!metalEnabled && !oglEnabled) {
-                        throw new RuntimeException("Error - unable to initialize any rendering pipeline.");
+                        throw new InternalError("Error - unable to initialize any rendering pipeline.");
                     }
 
                     return null;

@@ -51,7 +51,7 @@ public class MacosxSurfaceManagerFactory extends SurfaceManagerFactory {
     public VolatileSurfaceManager createVolatileManager(SunVolatileImage vImg,
                                                         Object context)
     {
-        return CGraphicsDevice.useMetalPipeline() ? new MTLVolatileSurfaceManager(vImg, context) :
+        return CGraphicsDevice.usingMetalPipeline() ? new MTLVolatileSurfaceManager(vImg, context) :
                 new CGLVolatileSurfaceManager(vImg, context);
     }
 }
