@@ -92,8 +92,16 @@ public class MacOSFlags {
                     PropertyState oglState = getBooleanProp("sun.java2d.opengl", PropertyState.UNSPECIFIED);
                     PropertyState metalState = getBooleanProp("sun.java2d.metal", PropertyState.UNSPECIFIED);
 
-                    // Note : Currently OpenGL is the default pipeline.
-                    // Switch logic in this if-else ladder if default pipeline is changed to Metal
+                    // Handle invalid combinations to use the default rendering pipeline
+                    // Current default rendering pipeline is OpenGL
+                    // (The default can be changed to Metal in future just by toggling two states in this if condition block)
+                    if ((oglState == PropertyState.UNSPECIFIED && metalState == PropertyState.UNSPECIFIED) ||
+                        (oglState == PropertyState.DISABLED && metalState == PropertyState.DISABLED) ||
+                        (oglState == PropertyState.ENABLED && metalState == PropertyState.ENABLED)) {
+                        oglState = PropertyState.ENABLED; // Enable default pipeline
+                        metalState = PropertyState.DISABLED; // Disable non-default pipeline
+                    }
+
                     if (metalState == PropertyState.UNSPECIFIED) {
                         if (oglState == PropertyState.DISABLED) {
                             oglEnabled = false;
