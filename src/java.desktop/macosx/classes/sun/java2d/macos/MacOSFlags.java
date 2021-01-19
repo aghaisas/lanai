@@ -111,10 +111,8 @@ public class MacOSFlags {
                             metalEnabled = false;
                         }
                     } else if (metalState == PropertyState.ENABLED) {
-                        if (oglState == PropertyState.DISABLED || oglState == PropertyState.UNSPECIFIED) {
-                            oglEnabled = false;
-                            metalEnabled = true;
-                        }
+                        oglEnabled = false;
+                        metalEnabled = true;
                     } else if (metalState == PropertyState.DISABLED) {
                         oglEnabled = true;
                         metalEnabled = false;
