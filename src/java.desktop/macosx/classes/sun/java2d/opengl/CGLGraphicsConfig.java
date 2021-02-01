@@ -317,7 +317,7 @@ public final class CGLGraphicsConfig extends CGraphicsConfig
             try {
                 bg.setBackground(peer.getBackground());
                 bg.clearRect(0, 0, backBuffer.getWidth(null),
-                    backBuffer.getHeight(null));
+                             backBuffer.getHeight(null));
             } finally {
                 bg.dispose();
             }
